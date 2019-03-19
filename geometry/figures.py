@@ -22,7 +22,7 @@ class Circle(Figure):
     def get_pixels(self) -> Iterable[Point]:
         for delta_x in range(self.radius + 1):
             delta_y = sqrt(self.radius**2 - delta_x**2)
-            return chain(
+            yield from chain(
                 create_point_combinations(delta_x, delta_y),
                 create_point_combinations(delta_y, delta_x)
             )
@@ -31,7 +31,7 @@ class Circle(Figure):
 class Triangle(Figure):
     draw_method = DrawMethod.POINTS_CLOSED
 
-    def __init__(self, *points: Sequence[Point]):
+    def __init__(self, *points: Point):
         if len(points) != 3:
             raise ValueError('3 points expected, got %d', len(points))
 
@@ -46,29 +46,27 @@ class Rectangle(Figure):
 
     def __init__(
             self,
-            up_left_point: Point,
-            side_length_1: Decimal,
-            side_length_2: Decimal,
+            side_length_1: AnyNumber,
+            side_length_2: AnyNumber,
     ):
         if not (side_length_1 > 0 and side_length_2 > 0):
             raise ValueError('Side lengths should be positive numbers.')
 
-        self.up_left_point = up_left_point
         self.side_length_1 = side_length_1
         self.side_length_2 = side_length_2
 
     def get_points(self):
         return (
-            self.up_left_point,
-            self.up_left_point + Point(self.side_length_1, 0),
-            self.up_left_point + Point(self.side_length_1, self.side_length_2),
-            self.up_left_point + Point(0, self.side_length_2),
+            Point(0, 0),
+            Point(self.side_length_1, 0),
+            Point(self.side_length_1, self.side_length_2),
+            Point(0, self.side_length_2),
         )
 
 
 class Square(Rectangle):
-    def __init__(self, up_left_point: Point, side_length: Decimal):
-        super().__init__(up_left_point, side_length, side_length)
+    def __init__(self, side_length: AnyNumber):
+        super().__init__(side_length, side_length)
 
 
 class Elipse(Figure):
