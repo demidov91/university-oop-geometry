@@ -5,7 +5,7 @@ import tkinter as tk
 
 from geometry.figures import Circle, Elipse, Line, Triangle, Rectangle, Square
 from geometry.graphics import GenericInterface, TextBoard
-from geometry.gui import GUI
+from geometry.gui.gui import GUI
 from geometry.core import Point, Container
 
 

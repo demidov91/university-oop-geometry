@@ -5,7 +5,7 @@ from copy import copy
 from decimal import Decimal
 from enum import Enum
 from itertools import chain
-from typing import Dict, Iterable, Union, Sequence, List, Type
+from typing import Iterable, Union, Sequence
 
 from geometry.forms import FigureForm
 
@@ -14,8 +14,13 @@ AnyNumber = Union[float, int, Decimal]
 
 @dataclasses.dataclass
 class Point:
-    x: AnyNumber
-    y: AnyNumber
+    x: Decimal
+    y: Decimal
+
+    def __post_init__(self):
+        self.x = Decimal(self.x)
+        self.y = Decimal(self.y)
+
 
     def to_int(self):
         return IntPoint(
@@ -40,14 +45,13 @@ class Point:
         return NotImplemented
 
 
-
 @dataclasses.dataclass
 class IntPoint(Point):
     x: int
     y: int
 
     def __hash__(self):
-        return self.x + self.y
+        return int(self.x + self.y)
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y

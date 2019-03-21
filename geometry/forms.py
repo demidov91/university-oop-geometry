@@ -3,10 +3,10 @@ from typing import Dict, Type, List
 
 
 class FigureField:
-    def __init__(self, name: str, input_class: Type, *, label: str):
+    def __init__(self, name: str, input_class: Type, *, label: str=None):
         self.name = name
         self.input_class = input_class
-        self.label = label
+        self.label = label if label is not None else name
 
 
 class FigureForm:

@@ -1,12 +1,13 @@
 import tkinter as tk
+from functools import partial
 from typing import Iterable, Type
-from decimal import Decimal
 
 from PIL import Image, ImageDraw
 from PIL.ImageTk import PhotoImage
 
-from geometry.core import Point, FigureStorage, FigureForm, Figure, Container
+from geometry.core import Point, FigureStorage, Figure, Container
 from geometry.graphics import BaseBoard, GenericInterface
+from geometry.gui.figure_dialog import FigureDialog
 
 
 import logging
@@ -18,7 +19,6 @@ class GUI(tk.Frame, BaseBoard):
 
     def _init_left_side(self):
         self.paint_area = tk.Label(self)
-        self._reset_image()
         self.paint_area.pack(side=tk.LEFT)
 
     def _init_right_side(self):
@@ -37,8 +37,35 @@ class GUI(tk.Frame, BaseBoard):
         self.create_button.pack(side=tk.LEFT)
         self._update_dropdown_options()
 
-        self.figures = tk.Frame(self.right_container)
-        self.figures.pack(side=tk.TOP, fill=tk.Y)
+        self._init_figures_ui(self.right_container)
+
+    def _init_figures_ui(self, master):
+        self.figures_frame = tk.Frame(master)
+        self.figures_frame.pack(side=tk.TOP, fill=tk.Y)
+        self._update_figures()
+
+    def _update_figures(self):
+        self._update_figures_frame()
+        self._reset_image()
+        GenericInterface(self).draw(self.figures)
+
+    def _update_figures_frame(self):
+        for child in tuple(self.figures_frame.children.values()):
+            child.destroy()
+
+        for item in self.figures.items:
+            line = tk.Frame(self.figures_frame)
+            line.pack(side=tk.TOP)
+
+            label = tk.Label(line, text=item.items[0].get_display_symbol())
+            remove = tk.Button(
+                line,
+                text='remove',
+                command=partial(self.on_remove, container=item),
+            )
+
+            label.pack(side=tk.LEFT)
+            remove.pack(side=tk.LEFT)
 
     def _update_dropdown_options(self):
         storage = FigureStorage()
@@ -56,7 +83,7 @@ class GUI(tk.Frame, BaseBoard):
             *self._figure_name_to_class
         )
         if self.selected_dropdown.get() not in self._figure_name_to_class:
-            self.selected_dropdown.set('')
+            self.selected_dropdown.set(next(iter(self._figure_name_to_class), None))
 
         self.create_button.pack_forget()
         self.dropdown.pack(side=tk.LEFT)
@@ -68,9 +95,10 @@ class GUI(tk.Frame, BaseBoard):
     def __init__(self, *, master):
         super().__init__(master=master)
         self.pack()
+        self.figures = Container()
         self._init_left_side()
         self._init_right_side()
-        self.figures = Container()
+
 
     def _update_image(self):
         self._tkinter_image = PhotoImage(self._image)
@@ -98,6 +126,14 @@ class GUI(tk.Frame, BaseBoard):
 
         self._update_image()
 
+    def create_figure(self, coordinates: Point, args: tuple, kwargs: dict):
+        self.figures.items.append(Container(
+            self._editing_figure_class(*args, **kwargs),
+            coordinates
+        ))
+        self._update_figures()
+
+
     def on_create_click(self):
         figure_class = self._get_figure_to_create()
         if figure_class is None:
@@ -107,80 +143,6 @@ class GUI(tk.Frame, BaseBoard):
         self._editing_figure_class = figure_class
         FigureDialog(self, form)
 
-
-    def update_figure(self, identifier, args, kwargs):
-        self.figures.items.append(self._editing_figure_class(*args, **kwargs))
-        self._reset_image()
-        GenericInterface(self).draw(self.figures)
-
-
-class FigureDialog(tk.Toplevel):
-    def __init__(self, master, form: FigureForm, identifier=None):
-        super().__init__(master)
-        self.form = form
-        self.figure_identifier = identifier
-        self._widgets = {}
-        self._build_window()
-
-    def _build_window(self):
-        for field in self.form.fields:
-            line = tk.Frame(self)
-
-            label = tk.Label(line, text=field.name)
-            label.pack(side=tk.LEFT)
-            input_widget = self._create_widget(line, field.input_class)
-            input_widget.pack(side=tk.LEFT)
-            self._widgets[field.name] = input_widget
-
-            line.pack(side=tk.TOP)
-
-        self.save_button = tk.Button(self, text='Save', command=self.on_save)
-        self.save_button.pack(side=tk.TOP)
-
-    def on_save(self):
-        data = (
-            {name: self._widgets[name].get_value() for name in self._widgets}
-        )
-        self.master.update_figure(self.figure_identifier, *self.form.as_args_kwargs(data))
-        self.destroy()
-
-    def _create_widget(self, master, data_type: Type):
-        if type(data_type) is type and issubclass(data_type, Point):
-            return PointWidget(master)
-        return DecimalWidget(master)
-
-
-class PointWidget(tk.Frame):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.x = DecimalWidget(self)
-        self.y = DecimalWidget(self)
-        self.x.pack(side=tk.LEFT)
-        self.y.pack(side=tk.LEFT)
-
-    def get_value(self):
-
-        x = self.x.get_value()
-        y = self.y.get_value()
-
-        if x is not None and y is not None:
-            return Point(x, y)
-
-        return None
-
-
-class DecimalWidget(tk.Entry):
-    def get_value(self):
-        raw_value = self.get()
-        if not raw_value:
-            return None
-        try:
-            return Decimal(raw_value)
-        except (ValueError, TypeError, ArithmeticError) as e:
-            logger.warning(e)
-            return None
-
-
-
-
-
+    def on_remove(self, container):
+        self.figures.items.remove(container)
+        self._update_figures()

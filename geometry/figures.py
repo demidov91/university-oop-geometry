@@ -55,21 +55,21 @@ class Rectangle(Figure):
 
     def __init__(
             self,
-            side_length_1: AnyNumber,
-            side_length_2: AnyNumber,
+            x_length: AnyNumber,
+            y_length: AnyNumber,
     ):
-        if not (side_length_1 > 0 and side_length_2 > 0):
+        if not (x_length > 0 and y_length > 0):
             raise ValueError('Side lengths should be positive numbers.')
 
-        self.side_length_1 = side_length_1
-        self.side_length_2 = side_length_2
+        self.x_length = x_length
+        self.y_length = y_length
 
     def get_points(self):
         return (
             Point(0, 0),
-            Point(self.side_length_1, 0),
-            Point(self.side_length_1, self.side_length_2),
-            Point(0, self.side_length_2),
+            Point(self.x_length, 0),
+            Point(self.x_length, self.y_length),
+            Point(0, self.y_length),
         )
 
 
@@ -102,6 +102,7 @@ class Elipse(Figure):
 
 class Line(Figure):
     draw_method = DrawMethod.POINTS_OPEN
+    display_symbol = '\u2572'
 
     def __init__(self, a: Point, b: Point):
         self.a = a
