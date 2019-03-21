@@ -2,9 +2,6 @@ import tkinter as tk
 from functools import partial
 from typing import Iterable, Type
 
-from PIL import Image, ImageDraw
-from PIL.ImageTk import PhotoImage
-
 from geometry.core import Point, FigureStorage, Figure, Container
 from geometry.graphics import BaseBoard, GenericInterface
 from geometry.gui.figure_dialog import FigureDialog
@@ -18,8 +15,14 @@ class GUI(tk.Frame, BaseBoard):
     image_size = (500, 500)
 
     def _init_left_side(self):
-        self.paint_area = tk.Label(self)
-        self.paint_area.pack(side=tk.LEFT)
+        self.canvas = tk.Canvas(
+            self,
+            width=self.image_size[0],
+            height=self.image_size[1],
+            bg='white'
+        )
+
+        self.canvas.pack(side=tk.LEFT)
 
     def _init_right_side(self):
         self.right_container = tk.Frame(self)
@@ -46,7 +49,7 @@ class GUI(tk.Frame, BaseBoard):
 
     def _update_figures(self):
         self._update_figures_frame()
-        self._reset_image()
+        self.canvas.delete(tk.ALL)
         GenericInterface(self).draw(self.figures)
 
     def _update_figures_frame(self):
@@ -95,36 +98,21 @@ class GUI(tk.Frame, BaseBoard):
     def __init__(self, *, master):
         super().__init__(master=master)
         self.pack()
-        self.figures = Container()
+        self.figures = Container(coordinates=Point(1, 1))
         self._init_left_side()
         self._init_right_side()
 
-
-    def _update_image(self):
-        self._tkinter_image = PhotoImage(self._image)
-        self.paint_area.configure(image=self._tkinter_image)
-
-    def _reset_image(self):
-        self._image = Image.new('RGB', self.image_size, color=(255, 255, 255))
-        self._update_image()
-
     def draw_lines(self, points: Iterable[Point]):
-        editor = ImageDraw.Draw(self._image)
         iterator = iter(points)
         prev = next(iterator)
 
         for next_point in iterator:
-            editor.line((prev.x, prev.y, next_point.x, next_point.y), fill=0)
+            self.canvas.create_line((prev.x, prev.y, next_point.x, next_point.y), fill='black')
             prev = next_point
 
-        self._update_image()
-
     def draw_pixels(self, points: Iterable[Point]):
-        editor = ImageDraw.Draw(self._image)
         for point in points:
-            editor.point((point.x, point.y), fill=0)
-
-        self._update_image()
+            self.canvas.create_line(point.x, point.y, point.x+1, point.y, fill='black')
 
     def create_figure(self, coordinates: Point, args: tuple, kwargs: dict):
         self.figures.items.append(Container(
