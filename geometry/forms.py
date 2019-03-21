@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import Dict, Type, List
 
 
@@ -18,5 +17,8 @@ class FigureForm:
 
     def as_args_kwargs(self, data: dict):
         return (), data
+
+    def is_valid(self, data: dict):
+        return all(x is not None for x in data.values())
 
 

@@ -29,7 +29,6 @@ class FigureDialog(tk.Toplevel):
     def _build_field(self, field):
         line = tk.Frame(self)
 
-
         label = tk.Label(line, text=field.label)
         input_widget = self._create_widget(line, field.input_class)
 
@@ -43,7 +42,12 @@ class FigureDialog(tk.Toplevel):
             {name: self._widgets[name].get_value() for name in self._widgets}
         )
         coordinates = self._coordinates_widget.get_value() or Point(0, 0)
+        if not self.form.is_valid(data):
+            self.save_button.configure(text='Save (There were invalid values)')
+            return
+
         args, kwargs = self.form.as_args_kwargs(data)
+
         self.master.create_figure(
             coordinates,
             args,

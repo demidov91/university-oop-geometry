@@ -64,7 +64,7 @@ class GUI(tk.Frame, BaseBoard):
             remove = tk.Button(
                 line,
                 text='remove',
-                command=partial(self.on_remove, container=item),
+                command=partial(self.on_remove_click, container=item),
             )
 
             label.pack(side=tk.LEFT)
@@ -131,6 +131,6 @@ class GUI(tk.Frame, BaseBoard):
         self._editing_figure_class = figure_class
         FigureDialog(self, form)
 
-    def on_remove(self, container):
+    def on_remove_click(self, container):
         self.figures.items.remove(container)
         self._update_figures()
