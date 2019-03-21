@@ -1,15 +1,23 @@
-import tkinter as tk
+
+from abc import ABC
 from typing import Iterable
 
-from PIL import Image, ImageDraw
-from PIL.ImageTk import PhotoImage
+
 
 from geometry.core import DrawMethod, Point, DrawInfo, Drawable, IntPoint
 
 
 
+class BaseBoard(ABC):
+    def draw_pixels(self, pixels: Iterable[Point]):
+        raise NotImplementedError
+
+    def draw_lines(self, points: Iterable[Point]):
+        raise NotImplementedError
+
+
 class GenericInterface:
-    def __init__(self, board):
+    def __init__(self, board: BaseBoard):
         self.board = board
 
     def draw(self, drawable: Drawable):
@@ -27,7 +35,7 @@ class GenericInterface:
             self.board.draw_lines(points)
 
 
-class TextBoard:
+class TextBoard(BaseBoard):
     def draw_pixels(self, pixels: Iterable[IntPoint]):
         points_as_str = (f'({x.x}, {x.y})' for x in pixels)
         print('Pixels[' + ', '.join(points_as_str) + ']')
@@ -35,37 +43,3 @@ class TextBoard:
     def draw_lines(self, points: Iterable[Point]):
         points_as_str = (f'({x.x}, {x.y})' for x in (x.to_int() for x in points))
         print('Line ' + ' -> '.join(points_as_str))
-
-
-class GUI(tk.Frame):
-    image_size = (500, 500)
-
-    def __init__(self, *, master):
-        super().__init__(master=master)
-        self._image = Image.new('RGB', self.image_size, color=(255, 255, 255))
-        self.board = tk.Label(master)
-        self._update_image()
-        self.board.pack()
-
-    def _update_image(self):
-        self._tkinter_image = PhotoImage(self._image)
-        self.board.configure(image=self._tkinter_image)
-
-    def draw_lines(self, points: Iterable[Point]):
-        editor = ImageDraw.Draw(self._image)
-        iterator = iter(points)
-        prev = next(iterator)
-
-        for next_point in iterator:
-            editor.line((prev.x, prev.y, next_point.x, next_point.y), fill=0)
-            prev = next_point
-
-        self._update_image()
-
-    def draw_pixels(self, points: Iterable[Point]):
-        editor = ImageDraw.Draw(self._image)
-        for point in points:
-            editor.point((point.x, point.y), fill=0)
-
-        self._update_image()
-

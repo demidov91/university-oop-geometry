@@ -1,11 +1,13 @@
 import dataclasses
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from copy import copy
 from decimal import Decimal
 from enum import Enum
 from itertools import chain
-from typing import Iterable, Union, Sequence
+from typing import Dict, Iterable, Union, Sequence, List, Type
 
+from geometry.forms import FigureForm
 
 AnyNumber = Union[float, int, Decimal]
 
@@ -101,8 +103,62 @@ class Container(Drawable):
         return Container(self.items, copy(self.coordinates))
 
 
+class FigureStorage:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        # Not thread-safe.
+        if cls._instance is not None:
+            return cls._instance
+        return super().__new__(cls, *args, **kwargs)
+
+    def __init__(self):
+        # Not thread-safe.
+        if type(self)._instance is not None:
+            return
+
+        self.figure_classes = []
+        type(self)._instance = self
+
+
+    def add(self, figure_class):
+        self.figure_classes.append(figure_class)
+
+    def get(self):
+        return tuple(self.figure_classes)
+
+
 class Figure(Drawable):
     draw_method = None  # type: DrawMethod
+    display_symbol = '?'
+    _form = None
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        FigureStorage().add(cls)
+
+    @classmethod
+    def get_display_name(cls) -> str:
+        return cls.__name__
+
+    @classmethod
+    def get_display_symbol(cls) -> str:
+        return cls.display_symbol
+
+    @classmethod
+    def _create_form(cls):
+        annotations = OrderedDict(cls.__init__.__annotations__)
+        return FigureForm(
+            annotations,
+            {x: x for x in annotations}
+        )
+
+    @classmethod
+    def get_form(cls) -> FigureForm:
+        if cls._form is None:
+            cls._form = cls._create_form()
+
+        return cls._form
 
     def get_pixels(self) -> Iterable[Point]:
         raise NotImplementedError

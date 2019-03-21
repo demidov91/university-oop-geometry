@@ -1,9 +1,9 @@
-from decimal import Decimal
-from math import sqrt, pi
-from typing import Sequence, Iterable
+from math import sqrt
+from typing import Iterable
 from itertools import chain
 
 from geometry.core import Figure, Point, DrawMethod, AnyNumber
+from geometry.forms import TriangleForm
 from geometry.utils import (
     solve_elipse_equation,
     create_point_combinations,
@@ -12,6 +12,7 @@ from geometry.utils import (
 
 class Circle(Figure):
     draw_method = DrawMethod.PIXELS
+    display_symbol = '\u25cb'
 
     def __init__(self, radius: int):
         if radius <= 0:
@@ -30,6 +31,11 @@ class Circle(Figure):
 
 class Triangle(Figure):
     draw_method = DrawMethod.POINTS_CLOSED
+    display_symbol = '\u25b3'
+
+    @classmethod
+    def _create_form(cls):
+        return TriangleForm()
 
     def __init__(self, *points: Point):
         if len(points) != 3:
@@ -41,8 +47,11 @@ class Triangle(Figure):
         return self.points
 
 
+
+
 class Rectangle(Figure):
     draw_method = DrawMethod.POINTS_CLOSED
+    display_symbol = '\u25ad'
 
     def __init__(
             self,
@@ -65,12 +74,15 @@ class Rectangle(Figure):
 
 
 class Square(Rectangle):
+    display_symbol = '\u25a1'
+
     def __init__(self, side_length: AnyNumber):
         super().__init__(side_length, side_length)
 
 
 class Elipse(Figure):
     draw_method = DrawMethod.PIXELS
+    display_symbol = '\u2b2d'
 
     def __init__(self, x_radius: AnyNumber, y_radius: AnyNumber):
         self.x_radius = x_radius
