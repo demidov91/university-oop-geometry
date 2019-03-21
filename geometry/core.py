@@ -166,6 +166,14 @@ class Figure(Drawable):
 
         return cls._form
 
+    def get_instance_form(self):
+        form = self.get_form()
+        data = form.as_data(self)
+        for field in form.fields:
+            field.value = data[field.name]
+
+        return form
+
     def get_pixels(self) -> Iterable[Point]:
         raise NotImplementedError
 

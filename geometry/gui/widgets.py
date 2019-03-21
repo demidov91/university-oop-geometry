@@ -26,10 +26,18 @@ class PointWidget(tk.Frame):
 
         return None
 
+    def set_value(self, value: Point):
+        self.x.set_value(value.x)
+        self.y.set_value(value.y)
+
 
 class DecimalWidget(tk.Entry):
+    def __init__(self, *args, **kwargs):
+        self.text = tk.StringVar()
+        super().__init__(*args, textvariable=self.text, **kwargs)
+
     def get_value(self):
-        raw_value = self.get()
+        raw_value = self.text.get()
         if not raw_value:
             return None
         try:
@@ -37,3 +45,6 @@ class DecimalWidget(tk.Entry):
         except (ValueError, TypeError, ArithmeticError) as e:
             logger.warning(e)
             return None
+
+    def set_value(self, value: Decimal):
+        self.text.set(str(value))

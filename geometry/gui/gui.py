@@ -1,4 +1,5 @@
 import tkinter as tk
+from copy import copy
 from functools import partial
 from typing import Iterable, Type
 
@@ -49,6 +50,9 @@ class GUI(tk.Frame, BaseBoard):
 
     def _update_figures(self):
         self._update_figures_frame()
+        self._repaint()
+
+    def _repaint(self):
         self.canvas.delete(tk.ALL)
         GenericInterface(self).draw(self.figures)
 
@@ -61,13 +65,25 @@ class GUI(tk.Frame, BaseBoard):
             line.pack(side=tk.TOP)
 
             label = tk.Label(line, text=item.items[0].get_display_symbol())
+            copy_btn = tk.Button(
+                line,
+                text='⎘',
+                command=partial(self.on_copy_click, container=item),
+            )
+            edit = tk.Button(
+                line,
+                text='✎',
+                command=partial(self.on_edit_click, container=item),
+            )
             remove = tk.Button(
                 line,
-                text='remove',
+                text='✖',
                 command=partial(self.on_remove_click, container=item),
             )
 
             label.pack(side=tk.LEFT)
+            copy_btn.pack(side=tk.LEFT)
+            edit.pack(side=tk.LEFT)
             remove.pack(side=tk.LEFT)
 
     def _update_dropdown_options(self):
@@ -114,13 +130,17 @@ class GUI(tk.Frame, BaseBoard):
         for point in points:
             self.canvas.create_line(point.x, point.y, point.x+1, point.y, fill='black')
 
-    def create_figure(self, coordinates: Point, args: tuple, kwargs: dict):
+    def create_figure(self, figure_class: Type[Figure], coordinates: Point, args: tuple, kwargs: dict):
         self.figures.items.append(Container(
-            self._editing_figure_class(*args, **kwargs),
+            figure_class(*args, **kwargs),
             coordinates
         ))
         self._update_figures()
 
+    def edit_figure(self, container: Container, coordinates: Point, args: tuple, kwargs: dict):
+        container.items[0] = type(container.items[0])(*args, **kwargs)
+        container.coordinates = coordinates
+        self._repaint()
 
     def on_create_click(self):
         figure_class = self._get_figure_to_create()
@@ -128,9 +148,26 @@ class GUI(tk.Frame, BaseBoard):
             return
 
         form = figure_class.get_form()
-        self._editing_figure_class = figure_class
-        FigureDialog(self, form)
+        FigureDialog(
+            self,
+            form=form,
+            save_callback=partial(self.create_figure, figure_class=figure_class),
+        )
 
-    def on_remove_click(self, container):
+    def on_copy_click(self, container: Container):
+        self.figures.items.append(copy(container))
+        self._update_figures()
+
+    def on_edit_click(self, container: Container):
+        figure = container.items[0]
+        form = figure.get_instance_form()
+        FigureDialog(
+            self,
+            form=form,
+            coordinates=container.coordinates,
+            save_callback=partial(self.edit_figure, container=container),
+        )
+
+    def on_remove_click(self, container: Container):
         self.figures.items.remove(container)
         self._update_figures()

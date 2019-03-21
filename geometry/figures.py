@@ -122,3 +122,6 @@ class TriangleForm(FigureForm):
 
     def as_args_kwargs(self, data: dict):
         return (data['a'], data['b'], data['c']), {}
+
+    def as_data(self, figure):
+        return dict(zip(('a', 'b', 'c'), figure.points))

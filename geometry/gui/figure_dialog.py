@@ -1,5 +1,5 @@
 import tkinter as tk
-from typing import Type
+from typing import Type, Callable
 
 from geometry.core import Point
 from geometry.forms import FigureForm, FigureField
@@ -7,9 +7,11 @@ from geometry.gui.widgets import PointWidget, DecimalWidget
 
 
 class FigureDialog(tk.Toplevel):
-    def __init__(self, master, form: FigureForm):
+    def __init__(self, master, *, form: FigureForm, save_callback: Callable, coordinates: Point=None):
         super().__init__(master)
         self.form = form
+        self.save_callback = save_callback
+        self.coordinates = coordinates
         self._widgets = {}
         self._coordinates_widget = None
         self._build_window()
@@ -20,7 +22,9 @@ class FigureDialog(tk.Toplevel):
             self._widgets[field.name] = widget
             line.pack(side=tk.TOP)
 
-        line, self._coordinates_widget = self._build_field(FigureField('coordinates', Point))
+        line, self._coordinates_widget = self._build_field(
+            FigureField('coordinates', Point, value=self.coordinates)
+        )
         line.pack(side=tk.TOP, pady=(15, 0))
 
         self.save_button = tk.Button(self, text='Save', command=self.on_save)
@@ -31,6 +35,8 @@ class FigureDialog(tk.Toplevel):
 
         label = tk.Label(line, text=field.label)
         input_widget = self._create_widget(line, field.input_class)
+        if field.value:
+            input_widget.set_value(field.value)
 
         label.pack(side=tk.LEFT)
         input_widget.pack(side=tk.LEFT)
@@ -48,10 +54,10 @@ class FigureDialog(tk.Toplevel):
 
         args, kwargs = self.form.as_args_kwargs(data)
 
-        self.master.create_figure(
-            coordinates,
-            args,
-            kwargs
+        self.save_callback(
+            coordinates=coordinates,
+            args=args,
+            kwargs=kwargs
         )
         self.destroy()
 
