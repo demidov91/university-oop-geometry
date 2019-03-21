@@ -3,7 +3,7 @@ from typing import Iterable
 from itertools import chain
 
 from geometry.core import Figure, Point, DrawMethod, AnyNumber
-from geometry.forms import TriangleForm
+from geometry.forms import FigureForm
 from geometry.utils import (
     solve_elipse_equation,
     create_point_combinations,
@@ -21,7 +21,7 @@ class Circle(Figure):
         self.radius = radius
 
     def get_pixels(self) -> Iterable[Point]:
-        for delta_x in range(self.radius + 1):
+        for delta_x in range(int(self.radius) + 1):
             delta_y = sqrt(self.radius**2 - delta_x**2)
             yield from chain(
                 create_point_combinations(delta_x, delta_y),
@@ -111,3 +111,13 @@ class Line(Figure):
         return self.a, self.b
 
 
+class TriangleForm(FigureForm):
+    def __init__(self):
+        fields = 'a', 'b', 'c'
+        super().__init__(
+            field_types={x: Point for x in fields},
+            text_labels={x: x for x in fields}
+        )
+
+    def as_args_kwargs(self, data: dict):
+        return (data['a'], data['b'], data['c']), {}

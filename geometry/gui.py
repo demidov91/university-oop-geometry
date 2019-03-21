@@ -1,20 +1,24 @@
 import tkinter as tk
 from typing import Iterable, Type
+from decimal import Decimal
 
 from PIL import Image, ImageDraw
 from PIL.ImageTk import PhotoImage
 
-from geometry.core import Point, FigureStorage, FigureForm, Figure
-from geometry.graphics import BaseBoard
+from geometry.core import Point, FigureStorage, FigureForm, Figure, Container
+from geometry.graphics import BaseBoard, GenericInterface
+
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class GUI(tk.Frame, BaseBoard):
     image_size = (500, 500)
 
     def _init_left_side(self):
-        self._image = Image.new('RGB', self.image_size, color=(255, 255, 255))
         self.paint_area = tk.Label(self)
-        self._update_image()
+        self._reset_image()
         self.paint_area.pack(side=tk.LEFT)
 
     def _init_right_side(self):
@@ -66,10 +70,15 @@ class GUI(tk.Frame, BaseBoard):
         self.pack()
         self._init_left_side()
         self._init_right_side()
+        self.figures = Container()
 
     def _update_image(self):
         self._tkinter_image = PhotoImage(self._image)
         self.paint_area.configure(image=self._tkinter_image)
+
+    def _reset_image(self):
+        self._image = Image.new('RGB', self.image_size, color=(255, 255, 255))
+        self._update_image()
 
     def draw_lines(self, points: Iterable[Point]):
         editor = ImageDraw.Draw(self._image)
@@ -95,15 +104,21 @@ class GUI(tk.Frame, BaseBoard):
             return
 
         form = figure_class.get_form()
+        self._editing_figure_class = figure_class
         FigureDialog(self, form)
 
 
+    def update_figure(self, identifier, args, kwargs):
+        self.figures.items.append(self._editing_figure_class(*args, **kwargs))
+        self._reset_image()
+        GenericInterface(self).draw(self.figures)
 
 
 class FigureDialog(tk.Toplevel):
-    def __init__(self, master, form: FigureForm):
+    def __init__(self, master, form: FigureForm, identifier=None):
         super().__init__(master)
         self.form = form
+        self.figure_identifier = identifier
         self._widgets = {}
         self._build_window()
 
@@ -123,27 +138,47 @@ class FigureDialog(tk.Toplevel):
         self.save_button.pack(side=tk.TOP)
 
     def on_save(self):
-        print(
-            {name: self._widgets[name].get() for name in self._widgets}
+        data = (
+            {name: self._widgets[name].get_value() for name in self._widgets}
         )
+        self.master.update_figure(self.figure_identifier, *self.form.as_args_kwargs(data))
         self.destroy()
 
     def _create_widget(self, master, data_type: Type):
         if type(data_type) is type and issubclass(data_type, Point):
             return PointWidget(master)
-        return tk.Entry(master)
+        return DecimalWidget(master)
 
 
 class PointWidget(tk.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.x = tk.Entry(self)
-        self.y = tk.Entry(self)
+        self.x = DecimalWidget(self)
+        self.y = DecimalWidget(self)
         self.x.pack(side=tk.LEFT)
         self.y.pack(side=tk.LEFT)
 
-    def get(self):
-        return (self.x.get(), self.y.get())
+    def get_value(self):
+
+        x = self.x.get_value()
+        y = self.y.get_value()
+
+        if x is not None and y is not None:
+            return Point(x, y)
+
+        return None
+
+
+class DecimalWidget(tk.Entry):
+    def get_value(self):
+        raw_value = self.get()
+        if not raw_value:
+            return None
+        try:
+            return Decimal(raw_value)
+        except (ValueError, TypeError, ArithmeticError) as e:
+            logger.warning(e)
+            return None
 
 
 

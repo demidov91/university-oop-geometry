@@ -16,11 +16,7 @@ class FigureForm:
         for name, input_class in field_types.items():
             self.fields.append(FigureField(name, input_class, label=text_labels.get(name, '?')))
 
+    def as_args_kwargs(self, data: dict):
+        return (), data
 
-class TriangleForm(FigureForm):
-    def __init__(self):
-        fields = 'a', 'b', 'c'
-        super().__init__(
-            field_types={x: Decimal for x in fields},
-            text_labels={x: x for x in fields}
-        )
+

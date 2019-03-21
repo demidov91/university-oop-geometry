@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+import sys
 import tkinter as tk
 
 from geometry.figures import Circle, Elipse, Line, Triangle, Rectangle, Square
@@ -51,20 +54,36 @@ def create_seesaw():
 
 
 def run():
+    root = tk.Tk()
+    GenericInterface(GUI(master=root))
+    root.mainloop()
+
+
+def run_as_text():
     people = create_two_people()
     GenericInterface(TextBoard()).draw(people)
+
+
+def run_as_example():
+    people = create_two_people()
+    seesaw = create_seesaw()
+    seesaw.coordinates.x = 350
+    seesaw.coordinates.y = 50
 
     root = tk.Tk()
     gui = GenericInterface(GUI(master=root))
     gui.draw(people)
-
-    seesaw = create_seesaw()
-    seesaw.coordinates.x = 350
-    seesaw.coordinates.y = 50
     gui.draw(seesaw)
 
     root.mainloop()
 
 
+
 if __name__ == '__main__':
-    run()
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'text':
+            run_as_text()
+        elif sys.argv[1] == 'example':
+            run_as_example()
+    else:
+        run()

@@ -88,9 +88,11 @@ class Drawable(ABC):
 
 
 class Container(Drawable):
-    def __init__(self, items: Union[Sequence[Drawable], Drawable], coordinates: Point=None):
+    def __init__(self, items: Union[Sequence[Drawable], Drawable]=None, coordinates: Point=None):
         self.coordinates = coordinates or Point(0, 0)
-        if isinstance(items, Drawable):
+        if not items:
+            self.items = []
+        elif isinstance(items, Drawable):
             self.items = [items]
         else:
             self.items = items

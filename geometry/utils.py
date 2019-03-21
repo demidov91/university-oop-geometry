@@ -19,4 +19,4 @@ def solve_elipse_equation(
         other_coordinate: AnyNumber,
         other_coef: AnyNumber
 ) -> Union[Decimal, float]:
-    return current_coef * sqrt(1 - other_coordinate**2 / other_coef**2)
+    return current_coef * Decimal(1 - other_coordinate**2 / other_coef**2).sqrt()
