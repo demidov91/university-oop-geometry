@@ -79,6 +79,10 @@ class Square(Rectangle):
     def __init__(self, side_length: AnyNumber):
         super().__init__(side_length, side_length)
 
+    @property
+    def side_length(self):
+        return self.x_length
+
 
 class Elipse(Figure):
     draw_method = DrawMethod.PIXELS

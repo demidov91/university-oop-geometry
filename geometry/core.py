@@ -161,7 +161,7 @@ class Figure(Drawable):
 
     @classmethod
     def get_form(cls) -> FigureForm:
-        if cls._form is None:
+        if '_form' not in cls.__dict__:
             cls._form = cls._create_form()
 
         return cls._form
