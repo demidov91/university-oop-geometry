@@ -5,7 +5,7 @@ from copy import copy
 from decimal import Decimal
 from enum import Enum
 from itertools import chain
-from typing import Iterable, Union, Sequence
+from typing import Iterable, Union, Sequence, Tuple, Type
 
 from geometry.forms import FigureForm
 
@@ -113,25 +113,33 @@ class FigureStorage:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
-        # Not thread-safe.
+        # Not thread-safe start.
         if cls._instance is not None:
             return cls._instance
+        # Not thread-safe end.
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self):
-        # Not thread-safe.
+        # Not thread-safe start.
         if type(self)._instance is not None:
             return
 
         self.figure_classes = []
         type(self)._instance = self
+        # Not thread-safe end.
+
+        self.name_to_class = {}
 
 
     def add(self, figure_class):
         self.figure_classes.append(figure_class)
+        self.name_to_class[figure_class.get_display_name()] = figure_class
 
-    def get(self):
+    def get(self) -> Tuple[Type['Figure']]:
         return tuple(self.figure_classes)
+
+    def get_by_name(self, name: str) -> Type['Figure']:
+        return self.name_to_class[name]
 
 
 class Figure(Drawable):
