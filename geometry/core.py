@@ -174,6 +174,9 @@ class Figure(Drawable):
 
         return form
 
+    def get_data(self):
+        return self.get_form().as_data(self)
+
     def get_pixels(self) -> Iterable[Point]:
         raise NotImplementedError
 
