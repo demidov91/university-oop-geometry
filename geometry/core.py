@@ -1,7 +1,6 @@
 import dataclasses
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from copy import copy
 from decimal import Decimal
 from enum import Enum
 from itertools import chain
@@ -104,9 +103,6 @@ class Container(Drawable):
     def get_draw_info(self) -> Iterable[Drawable]:
         drawables = chain.from_iterable(x.get_draw_info() for x in self.items)
         return (self.coordinates + x for x in drawables)
-
-    def __copy__(self):
-        return Container(self.items, copy(self.coordinates))
 
 
 class FigureStorage:

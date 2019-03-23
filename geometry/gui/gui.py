@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
-from copy import copy
+from copy import deepcopy
 from functools import partial
 from typing import Iterable, Type
 
@@ -186,7 +186,7 @@ class GUI(tk.Frame, BaseBoard):
         )
 
     def on_copy_click(self, container: Container):
-        self.figures.items.append(copy(container))
+        self.figures.items.append(deepcopy(container))
         self._update_figures()
 
     def on_edit_click(self, container: Container):
