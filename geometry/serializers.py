@@ -116,10 +116,11 @@ class TextDeserializer:
             record = self.next(level)
 
     def decode_container(self, level: int) -> Container:
-        coordinates = self.decode_value(self.next(level=level).content)
+        key, point = self.decode_data_line(self.next(level=level).content)
+        assert key == 'coordinates'
         assert self.next(level=level).content == 'items:'
-        items = tuple(self.decode(level=level+1))
-        return Container(items=items, coordinates=coordinates)
+        items = list(self.decode(level=level+1))
+        return Container(items=items, coordinates=point)
 
     def decode_figure(self, *, class_name: str, level: int) -> Figure:
         figure_class = FigureStorage().get_by_name(class_name)

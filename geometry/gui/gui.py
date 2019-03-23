@@ -1,11 +1,14 @@
 import tkinter as tk
+from tkinter import filedialog
 from copy import copy
 from functools import partial
 from typing import Iterable, Type
 
 from geometry.core import Point, FigureStorage, Figure, Container
 from geometry.graphics import BaseBoard, GenericInterface
+from geometry.gui import constants as gui_const
 from geometry.gui.figure_dialog import FigureDialog
+from geometry.serializers import TextSerializer, TextDeserializer
 
 
 import logging
@@ -13,13 +16,11 @@ logger = logging.getLogger(__name__)
 
 
 class GUI(tk.Frame, BaseBoard):
-    image_size = (500, 500)
-
     def _init_left_side(self):
         self.canvas = tk.Canvas(
             self,
-            width=self.image_size[0],
-            height=self.image_size[1],
+            width=gui_const.WINDOW_SIZE[0],
+            height=gui_const.WINDOW_SIZE[1],
             bg='white'
         )
 
@@ -42,6 +43,13 @@ class GUI(tk.Frame, BaseBoard):
         self._update_dropdown_options()
 
         self._init_figures_ui(self.right_container)
+
+        self.actions_frame = tk.Frame(self.right_container)
+        self.actions_frame.pack(side=tk.TOP, pady=(15, 0))
+        self.save_button = tk.Button(self.actions_frame, text='Save', command=self.on_save)
+        self.save_button.pack(side=tk.LEFT)
+        self.open_button = tk.Button(self.actions_frame, text='Open', command=self.on_open)
+        self.open_button.pack(side=tk.LEFT)
 
     def _init_figures_ui(self, master):
         self.figures_frame = tk.Frame(master)
@@ -170,4 +178,39 @@ class GUI(tk.Frame, BaseBoard):
 
     def on_remove_click(self, container: Container):
         self.figures.items.remove(container)
+        self._update_figures()
+
+    def on_save(self):
+        path = filedialog.asksaveasfilename(
+            initialdir=gui_const.DEFAULT_SAVE_DIR,
+            defaultextension='.vi'
+        )
+        if not path:
+            return
+
+        with open(path, mode='wt') as f:
+            f.write(TextSerializer().serialize(self.figures))
+
+    def on_open(self):
+        path = filedialog.askopenfilename(
+            initialdir=gui_const.DEFAULT_SAVE_DIR,
+            filetypes=(
+                ('images', '*.vi'),
+                ('all files', '*.*'),
+            )
+        )
+
+        with open(path, mode='rt') as f:
+            objects_iterator = TextDeserializer(f).decode()
+            image = next(objects_iterator)
+            rest_of_data = tuple(objects_iterator)
+
+        if not isinstance(image, Container):
+            logger.error('Unexpected file content.')
+            return
+
+        if rest_of_data:
+            logger.warning('Following records will be ignored: %s', rest_of_data)
+
+        self.figures = image
         self._update_figures()
