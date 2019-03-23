@@ -78,6 +78,13 @@ def run_as_example():
     root.mainloop()
 
 
+def run_as_serialize():
+    from geometry.serializers import TextSerializer
+
+    people = create_two_people()
+    with open('saved/example.vi', mode='wt') as f:
+        f.write(TextSerializer().serialize(people))
+
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -85,5 +92,7 @@ if __name__ == '__main__':
             run_as_text()
         elif sys.argv[1] == 'example':
             run_as_example()
+        elif sys.argv[1] == 'serialize':
+            run_as_serialize()
     else:
         run()

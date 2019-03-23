@@ -72,27 +72,50 @@ class GUI(tk.Frame, BaseBoard):
             line = tk.Frame(self.figures_frame)
             line.pack(side=tk.TOP)
 
-            label = tk.Label(line, text=item.items[0].get_display_symbol())
-            copy_btn = tk.Button(
-                line,
-                text='⎘',
-                command=partial(self.on_copy_click, container=item),
-            )
-            edit = tk.Button(
-                line,
-                text='✎',
-                command=partial(self.on_edit_click, container=item),
-            )
-            remove = tk.Button(
-                line,
-                text='✖',
-                command=partial(self.on_remove_click, container=item),
-            )
+            if len(item.items) == 1 and isinstance(item.items[0], Figure):
+                self._build_figure_line(line, item)
+            else:
+                self._build_container_line(line, item)
 
-            label.pack(side=tk.LEFT)
-            copy_btn.pack(side=tk.LEFT)
-            edit.pack(side=tk.LEFT)
-            remove.pack(side=tk.LEFT)
+    def _build_figure_line(self, line, item: Container):
+        label = tk.Label(line, text=item.items[0].get_display_symbol())
+        copy_btn = tk.Button(
+            line,
+            text='⎘',
+            command=partial(self.on_copy_click, container=item),
+        )
+        edit = tk.Button(
+            line,
+            text='✎',
+            command=partial(self.on_edit_click, container=item),
+        )
+        remove = tk.Button(
+            line,
+            text='✖',
+            command=partial(self.on_remove_click, container=item),
+        )
+
+        label.pack(side=tk.LEFT)
+        copy_btn.pack(side=tk.LEFT)
+        edit.pack(side=tk.LEFT)
+        remove.pack(side=tk.LEFT)
+
+    def _build_container_line(self, line, item: Container):
+        label = tk.Label(line, text='\u06de')
+        copy_btn = tk.Button(
+            line,
+            text='⎘',
+            command=partial(self.on_copy_click, container=item),
+        )
+        remove = tk.Button(
+            line,
+            text='✖',
+            command=partial(self.on_remove_click, container=item),
+        )
+
+        label.pack(side=tk.LEFT)
+        copy_btn.pack(side=tk.LEFT)
+        remove.pack(side=tk.LEFT)
 
     def _update_dropdown_options(self):
         storage = FigureStorage()
