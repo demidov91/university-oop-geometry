@@ -3,10 +3,12 @@
 import sys
 import tkinter as tk
 
+import geometry.constants as const
 from geometry.figures import Circle, Elipse, Line, Triangle, Rectangle, Square
 from geometry.graphics import GenericInterface, TextBoard
 from geometry.gui.gui import GUI
 from geometry.core import Point, Container
+from geometry.utils import read_plugins
 
 
 def create_two_people():
@@ -87,6 +89,7 @@ def run_as_serialize():
 
 
 if __name__ == '__main__':
+    read_plugins(const.PLUGINS_DIR)
     if len(sys.argv) > 1:
         if sys.argv[1] == 'text':
             run_as_text()
