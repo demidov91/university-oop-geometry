@@ -105,7 +105,7 @@ class Container(Drawable):
         return (self.coordinates + x for x in drawables)
 
 
-class FigureStorage:
+class FigureRegistry:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -145,7 +145,7 @@ class Figure(Drawable):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        FigureStorage().add(cls)
+        FigureRegistry().add(cls)
 
     @classmethod
     def get_display_name(cls) -> str:

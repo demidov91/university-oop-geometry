@@ -1,14 +1,24 @@
 import tkinter as tk
 from tkinter import filedialog
+from io import TextIOWrapper
 from copy import deepcopy
 from functools import partial
-from typing import Iterable, Type
+from typing import Iterable, Type, List
 
-from geometry.core import Point, FigureStorage, Figure, Container
+from geometry.core import Point, FigureRegistry, Figure, Container
+from geometry.file_processor import (
+    FileProcessor,
+    read_pipeline,
+    write_pipeline,
+    DebugFileProcessor,
+)
 from geometry.graphics import BaseBoard, GenericInterface
 from geometry.gui import constants as gui_const
 from geometry.gui.figure_dialog import FigureDialog
+from geometry.gui.settings_window import SettingsWindow
 from geometry.serializers import TextSerializer, TextDeserializer
+
+
 
 
 import logging
@@ -16,40 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class GUI(tk.Frame, BaseBoard):
-    def _init_left_side(self):
-        self.canvas = tk.Canvas(
-            self,
-            width=gui_const.WINDOW_SIZE[0],
-            height=gui_const.WINDOW_SIZE[1],
-            bg='white'
-        )
-
-        self.canvas.pack(side=tk.LEFT)
-
-    def _init_right_side(self):
-        self.right_container = tk.Frame(self)
-        self.right_container.pack(side=tk.LEFT, fill=tk.Y)
-
-        self.dropdown_area = tk.Frame(self.right_container)
-        self.dropdown_area.pack(side=tk.TOP)
-
-        self.selected_dropdown = tk.StringVar()
-        self.create_button = tk.Button(
-            self.dropdown_area,
-            text='Create',
-            command=self.on_create_click
-        )
-        self.create_button.pack(side=tk.LEFT)
-        self._update_dropdown_options()
-
-        self._init_figures_ui(self.right_container)
-
-        self.actions_frame = tk.Frame(self.right_container)
-        self.actions_frame.pack(side=tk.TOP, pady=(15, 0))
-        self.save_button = tk.Button(self.actions_frame, text='Save', command=self.on_save)
-        self.save_button.pack(side=tk.LEFT)
-        self.open_button = tk.Button(self.actions_frame, text='Open', command=self.on_open)
-        self.open_button.pack(side=tk.LEFT)
+    figures = None # type: Container
+    file_processors = None  # type: List[FileProcessor]
 
     def _init_figures_ui(self, master):
         self.figures_frame = tk.Frame(master)
@@ -118,7 +96,7 @@ class GUI(tk.Frame, BaseBoard):
         remove.pack(side=tk.LEFT)
 
     def _update_dropdown_options(self):
-        storage = FigureStorage()
+        storage = FigureRegistry()
         self._figure_name_to_class = {
             x.get_display_name(): x
             for x in storage.get()
@@ -142,12 +120,60 @@ class GUI(tk.Frame, BaseBoard):
     def _get_figure_to_create(self) -> Type[Figure]:
         return self._figure_name_to_class.get(self.selected_dropdown.get())
 
+    def _reset_application(self):
+        from encrypt_processor import EncryptProcessor
+        try:
+            ep = EncryptProcessor()
+        except Exception:
+            ep = None
+
+        self.file_processors = [DebugFileProcessor()]
+        if ep is not None:
+            self.file_processors.append(ep)
+
+        self.figures = Container(coordinates=Point(1, 1))
+
+
+    def _build_ui(self):
+        self.canvas = tk.Canvas(
+            self,
+            width=gui_const.WINDOW_SIZE[0],
+            height=gui_const.WINDOW_SIZE[1],
+            bg='white'
+        )
+        self.canvas.pack(side=tk.LEFT)
+
+        self.right_container = tk.Frame(self)
+        self.right_container.pack(side=tk.LEFT, fill=tk.Y)
+
+        self.dropdown_area = tk.Frame(self.right_container)
+        self.dropdown_area.pack(side=tk.TOP)
+
+        self.selected_dropdown = tk.StringVar()
+        self.create_button = tk.Button(
+            self.dropdown_area,
+            text='Create',
+            command=self.on_create_click
+        )
+        self.create_button.pack(side=tk.LEFT)
+        self._update_dropdown_options()
+
+        self._init_figures_ui(self.right_container)
+
+        self.actions_frame = tk.Frame(self.right_container)
+        self.actions_frame.pack(side=tk.TOP, pady=(15, 0))
+        self.save_button = tk.Button(self.actions_frame, text='Save', command=self.on_save)
+        self.save_button.pack(side=tk.LEFT)
+        self.open_button = tk.Button(self.actions_frame, text='Open', command=self.on_open)
+        self.open_button.pack(side=tk.LEFT)
+        self.settings_button = tk.Button(self.actions_frame, text='⚙', command=self.on_settings)
+        self.settings_button.pack(side=tk.LEFT)
+
     def __init__(self, *, master):
         super().__init__(master=master)
         self.pack()
-        self.figures = Container(coordinates=Point(1, 1))
-        self._init_left_side()
-        self._init_right_side()
+        self._reset_application()
+        self._build_ui()
 
     def draw_lines(self, points: Iterable[Point]):
         iterator = iter(points)
@@ -211,20 +237,32 @@ class GUI(tk.Frame, BaseBoard):
         if not path:
             return
 
-        with open(path, mode='wt') as f:
-            f.write(TextSerializer().serialize(self.figures))
+        for processor in self.file_processors:
+            if not processor.pre_save(self):
+                logger.warning('%s prevented saving the image.', processor)
+                return
+
+        data = TextSerializer().serialize(self.figures).encode()
+        data = write_pipeline(data, self.file_processors)
+
+        with open(path, mode='wb') as f:
+            f.write(data)
 
     def on_open(self):
         path = filedialog.askopenfilename(
             initialdir=gui_const.DEFAULT_SAVE_DIR,
             filetypes=(
-                ('images', '*.vi'),
+                ('images', ('*.vi', '*.vis')),
                 ('all files', '*.*'),
             )
         )
 
-        with open(path, mode='rt') as f:
-            objects_iterator = TextDeserializer(f).decode()
+        with open(path, mode='rb') as f:
+            for processor in reversed(self.file_processors):
+                processor.post_open(self)
+
+            buffer = read_pipeline(f, self.file_processors)
+            objects_iterator = TextDeserializer(TextIOWrapper(buffer)).decode()
             image = next(objects_iterator)
             rest_of_data = tuple(objects_iterator)
 
@@ -237,3 +275,8 @@ class GUI(tk.Frame, BaseBoard):
 
         self.figures = image
         self._update_figures()
+
+    def on_settings(self):
+        window = SettingsWindow(self)
+        window.grab_set()
+        self.wait_window(window)

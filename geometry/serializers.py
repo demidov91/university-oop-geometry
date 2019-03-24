@@ -4,7 +4,7 @@ from decimal import Decimal
 from itertools import chain
 from typing import Iterator, Union, Iterable, Tuple, Optional
 
-from geometry.core import Figure, Container, Point, FigureStorage
+from geometry.core import Figure, Container, Point, FigureRegistry
 from geometry.forms import FigureForm
 
 
@@ -123,7 +123,7 @@ class TextDeserializer:
         return Container(items=items, coordinates=point)
 
     def decode_figure(self, *, class_name: str, level: int) -> Figure:
-        figure_class = FigureStorage().get_by_name(class_name)
+        figure_class = FigureRegistry().get_by_name(class_name)
         form = figure_class.get_form()
         args, kwargs = form.as_args_kwargs(self.decode_data(level=level))
         return figure_class(*args, **kwargs)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 import sys
 import tkinter as tk
 
@@ -89,6 +90,7 @@ def run_as_serialize():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     read_plugins(const.PLUGINS_DIR)
     if len(sys.argv) > 1:
         if sys.argv[1] == 'text':
