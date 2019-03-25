@@ -4,6 +4,8 @@ from io import BytesIO
 from abc import ABC, abstractmethod
 from typing import Iterable, Tuple, Type
 
+from geometry.exceptions import StopPipelineError
+
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,8 @@ class FileProcessor(ABC):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         FileProcessorRegistry().add(cls)
+
+    is_ready = True
 
     @abstractmethod
     def read(self, file: BytesIO) -> BytesIO:
@@ -25,23 +29,38 @@ class FileProcessor(ABC):
     def get_display_name(cls):
         return cls.__name__
 
-    def pre_save(self, gui):
-        return True
-
-    def post_open(self, gui):
-        return True
+    def __init__(self, gui):
+        self.gui = gui
 
 
 def read_pipeline(file, pipeline: Iterable[FileProcessor]):
-    for processor in reversed(pipeline):
-        file = processor.read(file)
+    for processor in pipeline:
+        try:
+            file = processor.read(file)
+        except StopPipelineError as e:
+            logger.error(e.message)
+            raise e
+        except Exception as e:
+            logger.exception('Unexpected error on read.')
+            raise StopPipelineError(
+                f'Unexpected error in the {processor.get_display_name()}.'
+            ) from e
 
     return file
 
 
 def write_pipeline(data: bytes, pipeline: Iterable[FileProcessor]):
     for processor in pipeline:
-        data = processor.write(data)
+        try:
+            data = processor.write(data)
+        except StopPipelineError as e:
+            logger.error(e.message)
+            raise e
+        except Exception as e:
+            logger.exception('Unexpected error on write.')
+            raise StopPipelineError(
+                f'Unexpected error in the {processor.get_display_name()}.'
+            ) from e
 
     return data
 

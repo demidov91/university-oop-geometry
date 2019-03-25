@@ -1,16 +1,16 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from io import TextIOWrapper
 from copy import deepcopy
 from functools import partial
 from typing import Iterable, Type, List
 
 from geometry.core import Point, FigureRegistry, Figure, Container
+from geometry.exceptions import StopPipelineError
 from geometry.file_processor import (
     FileProcessor,
     read_pipeline,
     write_pipeline,
-    DebugFileProcessor,
 )
 from geometry.graphics import BaseBoard, GenericInterface
 from geometry.gui import constants as gui_const
@@ -19,15 +19,13 @@ from geometry.gui.settings_window import SettingsWindow
 from geometry.serializers import TextSerializer, TextDeserializer
 
 
-
-
 import logging
 logger = logging.getLogger(__name__)
 
 
 class GUI(tk.Frame, BaseBoard):
     figures = None # type: Container
-    file_processors = None  # type: List[FileProcessor]
+    file_processors = None  # type: List[Type[FileProcessor]]
 
     def _init_figures_ui(self, master):
         self.figures_frame = tk.Frame(master)
@@ -121,18 +119,8 @@ class GUI(tk.Frame, BaseBoard):
         return self._figure_name_to_class.get(self.selected_dropdown.get())
 
     def _reset_application(self):
-        from encrypt_processor import EncryptProcessor
-        try:
-            ep = EncryptProcessor()
-        except Exception:
-            ep = None
-
-        self.file_processors = [DebugFileProcessor()]
-        if ep is not None:
-            self.file_processors.append(ep)
-
+        self.file_processors = []
         self.figures = Container(coordinates=Point(1, 1))
-
 
     def _build_ui(self):
         self.canvas = tk.Canvas(
@@ -237,13 +225,17 @@ class GUI(tk.Frame, BaseBoard):
         if not path:
             return
 
-        for processor in self.file_processors:
-            if not processor.pre_save(self):
-                logger.warning('%s prevented saving the image.', processor)
-                return
+        processors = [x(self) for x in self.file_processors]
+        try:
+            data = TextSerializer().serialize(self.figures).encode()
+        except Exception as e:
+            return messagebox.showerror('Error!', "Can't serialize data :(")
 
-        data = TextSerializer().serialize(self.figures).encode()
-        data = write_pipeline(data, self.file_processors)
+        try:
+            data = write_pipeline(data, processors)
+        except StopPipelineError as e:
+            return messagebox.showerror('Error!', e.message)
+
 
         with open(path, mode='wb') as f:
             f.write(data)
@@ -257,14 +249,24 @@ class GUI(tk.Frame, BaseBoard):
             )
         )
 
-        with open(path, mode='rb') as f:
-            for processor in reversed(self.file_processors):
-                processor.post_open(self)
+        if not path:
+            return
 
-            buffer = read_pipeline(f, self.file_processors)
-            objects_iterator = TextDeserializer(TextIOWrapper(buffer)).decode()
-            image = next(objects_iterator)
-            rest_of_data = tuple(objects_iterator)
+        with open(path, mode='rb') as f:
+            processors = [x(self) for x in reversed(self.file_processors)]
+
+            try:
+                buffer = read_pipeline(f, processors)
+            except StopPipelineError as e:
+                return messagebox.showerror('Error!', e.message)
+
+            try:
+                objects_iterator = TextDeserializer(TextIOWrapper(buffer)).decode()
+                image = next(objects_iterator)
+                rest_of_data = tuple(objects_iterator)
+            except Exception:
+                logger.exception('Got unexpected exception while reading a file.')
+                return messagebox.showerror('Error!', "Can't open a file.")
 
         if not isinstance(image, Container):
             logger.error('Unexpected file content.')
@@ -277,6 +279,13 @@ class GUI(tk.Frame, BaseBoard):
         self._update_figures()
 
     def on_settings(self):
-        window = SettingsWindow(self)
+        window = SettingsWindow(
+            self,
+            file_pipeline=self.file_processors.copy(),
+            on_save=self.on_settings_save
+        )
         window.grab_set()
         self.wait_window(window)
+
+    def on_settings_save(self, file_pipeline: List[Type[FileProcessor]]):
+        self.file_processors = file_pipeline

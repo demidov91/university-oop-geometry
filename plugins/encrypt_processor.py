@@ -7,7 +7,7 @@ from io import BytesIO
 logger = logging.getLogger(__name__)
 
 try:
-    from cryptography.fernet import Fernet
+    from cryptography.fernet import Fernet, InvalidToken
     from cryptography.hazmat.backends.openssl.backend import backend as openssl_backend
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -17,6 +17,7 @@ except ImportError:
 else:
     is_initialized = True
 
+from geometry.exceptions import StopPipelineError
 from geometry.file_processor import FileProcessor
 from geometry.gui.gui import GUI
 
@@ -36,22 +37,24 @@ class EncryptProcessor(FileProcessor):
     password_input = None
     dialog = None
     SALT_LENGTH = 16
+    is_ready = is_initialized
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, gui):
+        super().__init__(gui)
         if not is_initialized:
             raise Exception('Module was not initialized.')
 
     def write(self, data: bytes):
-        password = self.password_input.get().encode()
-        salt = os.urandom(self.SALT_LENGTH)
+        password = self._get_password(self.gui).encode()
+        if not password:
+            raise StopPipelineError('No password provided.')
 
+        salt = os.urandom(self.SALT_LENGTH)
         data = get_fernet(password, salt).encrypt(data)
 
         return b'Salt' + bytes([self.SALT_LENGTH]) + salt + data
 
     def read(self, file: BytesIO) -> BytesIO:
-        password = self.password_input.get().encode()
         prefix = file.read(4)
         if prefix != b'Salt':
             logger.warning('This is not an encrypted file.')
@@ -60,8 +63,16 @@ class EncryptProcessor(FileProcessor):
 
         salt_length = file.read(1)
         salt = file.read(ord(salt_length))
+        password = self._get_password(self.gui).encode()
+        if not password:
+            raise StopPipelineError('No password provided.')
 
-        return BytesIO(get_fernet(password, salt).decrypt(file.read()))
+        try:
+            data = get_fernet(password, salt).decrypt(file.read())
+        except InvalidToken as e:
+            raise StopPipelineError('Invalid password.') from e
+
+        return BytesIO(data)
 
     def _get_password(self, gui: GUI):
         self.dialog = tk.Toplevel(gui.master)
@@ -79,11 +90,4 @@ class EncryptProcessor(FileProcessor):
         submit.pack(side=tk.TOP)
 
         gui.wait_window(self.dialog)
-        return bool(self.password_input.get())
-
-
-    def pre_save(self, gui: GUI):
-        return self._get_password(gui)
-
-    def post_open(self, gui: GUI):
-        return self._get_password(gui)
+        return self.password_input.get()
