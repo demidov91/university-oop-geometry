@@ -38,6 +38,9 @@ class SettingsWindow(tk.Toplevel):
         label.pack(side=tk.TOP)
 
         for processor_class in FileProcessorRegistry().get():
+            if not processor_class.is_ready:
+                continue
+
             line = tk.Frame(self)
             line.pack(side=tk.TOP)
 
