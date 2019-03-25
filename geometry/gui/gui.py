@@ -244,7 +244,7 @@ class GUI(tk.Frame, BaseBoard):
         path = filedialog.askopenfilename(
             initialdir=gui_const.DEFAULT_SAVE_DIR,
             filetypes=(
-                ('images', ('*.vi', '*.vis')),
+                ('images', '*.vi*'),
                 ('all files', '*.*'),
             )
         )

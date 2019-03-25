@@ -15,19 +15,21 @@ class FileProcessor(ABC):
         super().__init_subclass__(**kwargs)
         FileProcessorRegistry().add(cls)
 
-    is_ready = True
-
     @abstractmethod
     def read(self, file: BytesIO) -> BytesIO:
         pass
 
     @abstractmethod
-    def write(self, data: bytes):
+    def write(self, data: bytes) -> bytes:
         pass
 
     @classmethod
     def get_display_name(cls):
         return cls.__name__
+
+    @classmethod
+    def is_ready(cls) -> bool:
+        return True
 
     def __init__(self, gui):
         self.gui = gui

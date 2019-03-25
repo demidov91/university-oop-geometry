@@ -37,7 +37,10 @@ class EncryptProcessor(FileProcessor):
     password_input = None
     dialog = None
     SALT_LENGTH = 16
-    is_ready = is_initialized
+
+    @classmethod
+    def is_ready(cls):
+        return is_initialized
 
     def __init__(self, gui):
         super().__init__(gui)

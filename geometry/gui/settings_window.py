@@ -38,13 +38,13 @@ class SettingsWindow(tk.Toplevel):
         label.pack(side=tk.TOP)
 
         for processor_class in FileProcessorRegistry().get():
-            if not processor_class.is_ready:
+            if not processor_class.is_ready():
                 continue
 
             line = tk.Frame(self)
             line.pack(side=tk.TOP)
 
-            checked = tk.IntVar()
+            checked = tk.IntVar(value=1 if processor_class in self._pipeline else 0)
 
             tk.Checkbutton(
                 line,
@@ -73,6 +73,7 @@ class SettingsWindow(tk.Toplevel):
             text='Ok',
             command=self.on_save_click,
         ).pack(side=tk.LEFT)
+        self._update_pipeline_indices()
 
     def on_pipeline_click(self, processor_class: Type[FileProcessor], is_checked: tk.IntVar):
         if is_checked.get():
