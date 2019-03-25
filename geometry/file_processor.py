@@ -86,17 +86,11 @@ class FileProcessorRegistry:
         type(self)._instance = self
         # Not thread-safe end.
 
-        self.name_to_class = {}
-
     def add(self, processor_class: Type[FileProcessor]):
         self.processor_classes.append(processor_class)
-        self.name_to_class[processor_class.get_display_name()] = processor_class
 
     def get(self) -> Tuple[Type[FileProcessor]]:
         return tuple(self.processor_classes)
-
-    def get_by_name(self, name: str) -> Type[FileProcessor]:
-        return self.name_to_class[name]
 
 
 class DebugFileProcessor(FileProcessor):

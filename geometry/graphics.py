@@ -1,8 +1,5 @@
-
 from abc import ABC
 from typing import Iterable
-
-
 
 from geometry.core import DrawMethod, Point, DrawInfo, Drawable, IntPoint
 

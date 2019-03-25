@@ -3,7 +3,7 @@ import os
 import sys
 from decimal import Decimal
 from importlib import import_module
-from typing import Tuple, Union, Iterable
+from typing import Union, Iterable
 
 from geometry.core import AnyNumber, Point
 

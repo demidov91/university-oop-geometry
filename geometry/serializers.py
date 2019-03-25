@@ -5,7 +5,6 @@ from itertools import chain
 from typing import Iterator, Union, Iterable, Tuple, Optional
 
 from geometry.core import Figure, Container, Point, FigureRegistry
-from geometry.forms import FigureForm
 
 
 def get_indentation(level: int) -> str:
